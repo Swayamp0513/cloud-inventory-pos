@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniCloud POS & Multi-Store Inventory Hub</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-800/90 backdrop-blur border-b border-slate-700/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white font-bold shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-cloud text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-300">OmniCloud Inventory</h1>
+                    <p class="text-xs text-slate-400">Multi-Franchise Cloud Management & POS</p>
+                </div>
+            </div>
+            
+            <!-- User Status & Auth Section -->
+            <div class="flex items-center space-x-3">
+                <!-- If Logged In -->
+                <div id="userProfileBadge" class="hidden flex items-center space-x-3">
+                    <div class="text-right hidden sm:block">
+                        <div id="userFullName" class="text-sm font-semibold text-white">Brand Owner</div>
+                        <div id="userRoleTag" class="text-[11px] text-cyan-400 font-mono">ADMIN | Global Access</div>
+                    </div>
+                    <button onclick="handleLogout()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+
+                <!-- If Guest / Logged Out -->
+                <div id="guestAuthButtons" class="flex items-center space-x-2">
+                    <button onclick="openAuthModal('signin')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition">
+                        Sign In
+                    </button>
+                    <button onclick="openAuthModal('signup')" class="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold rounded-lg text-xs transition shadow-sm">
+                        Create Account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Sub-Nav & Scope Filter -->
+    <div class="bg-slate-800/40 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-2">
+            <div class="flex space-x-2 overflow-x-auto">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-sm">
+                    <i class="fa-solid fa-chart-line"></i><span>Cloud Analytics</span>
+                </button>
+                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-boxes-stacked"></i><span>Franchise Inventory</span>
+                </button>
+                <button onclick="switchTab('billing')" id="tab-billing" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-cash-register"></i><span>Cloud POS & Billing</span>
+                </button>
+                <button onclick="switchTab('stores')" id="tab-stores" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i class="fa-solid fa-shop"></i><span>Store Outlets</span>
+                </button>
+            </div>
+            
+            <!-- Global Store Filter Dropdown (Active for Admin, locked for Branch Manager) -->
+            <div class="flex items-center space-x-2">
+                <span class="text-xs uppercase font-semibold text-slate-400"><i class="fa-solid fa-filter mr-1"></i> Scope:</span>
+                <select id="activeStoreSelect" onchange="onActiveStoreChange()" class="bg-slate-950 border border-slate-700 text-cyan-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-cyan-500 focus:outline-none">
+                    <option value="all">Global (All Franchise Branches)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN BODY -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+        <!-- 1. DASHBOARD & BUSINESS REPORTS -->
+        <section id="view-dashboard" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold text-slate-400">Total Cloud Revenue</span>
+                        <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                    </div>
+                    <h3 id="statTotalRevenue" class="text-2xl font-bold text-emerald-400 mt-2">₹0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Aggregated store revenue</p>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold text-slate-400">Total Invoices</span>
+                        <div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-400"><i class="fa-solid fa-receipt"></i></div>
+                    </div>
+                    <h3 id="statTotalBills" class="text-2xl font-bold text-white mt-2">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Cloud transactions logged</p>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold text-slate-400">Synchronized Outlets</span>
+                        <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400"><i class="fa-solid fa-store"></i></div>
+                    </div>
+                    <h3 id="statTotalStores" class="text-2xl font-bold text-white mt-2">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Active connected branches</p>
+                </div>
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs uppercase font-bold text-slate-400">Total Stock Volume</span>
+                        <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400"><i class="fa-solid fa-cubes"></i></div>
+                    </div>
+                    <h3 id="statTotalUnits" class="text-2xl font-bold text-amber-300 mt-2">0</h3>
+                    <p class="text-xs text-slate-400 mt-1">Live inventory units</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Outlet Revenue Chart -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-4 flex items-center">
+                        <i class="fa-solid fa-chart-bar text-cyan-400 mr-2"></i> Franchise Revenue Comparison (₹)
+                    </h4>
+                    <div class="h-64">
+                        <canvas id="storeRevenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Low Stock Alerts -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between">
+                    <h4 class="text-sm font-semibold text-rose-400 mb-3 flex items-center">
+                        <i class="fa-solid fa-triangle-exclamation mr-2"></i> Franchise Low Stock Alerts
+                    </h4>
+                    <div class="overflow-y-auto max-h-56 pr-1">
+                        <div id="lowStockList" class="space-y-2 text-sm">
+                            <p class="text-slate-500 italic">Scanning threshold limits...</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
+                        <span>Real-time cloud alerts</span>
+                        <button onclick="switchTab('inventory')" class="text-cyan-400 hover:underline">Restock Now &rarr;</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. INVENTORY MANAGEMENT -->
+        <section id="view-inventory" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Centralized Franchise Inventory</h2>
+                    <p class="text-xs text-slate-400">Update stock levels, unit pricing, and thresholds for any franchise branch.</p>
+                </div>
+                <button onclick="openModal('addStockModal')" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
+                    <i class="fa-solid fa-plus"></i><span>Add / Update Stock</span>
+                </button>
+            </div>
+
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
+                            <tr>
+                                <th class="px-5 py-3">Store Outlet</th>
+                                <th class="px-5 py-3">SKU</th>
+                                <th class="px-5 py-3">Item Name</th>
+                                <th class="px-5 py-3">Category</th>
+                                <th class="px-5 py-3 text-right">Unit Price (₹)</th>
+                                <th class="px-5 py-3 text-center">Stock</th>
+                                <th class="px-5 py-3 text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody" class="divide-y divide-slate-700/60">
+                            <tr><td colspan="7" class="px-5 py-8 text-center text-slate-500">Loading live stock data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. BILLING & POS -->
+        <section id="view-billing" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                            <i class="fa-solid fa-cart-shopping text-cyan-400 mr-2"></i> Fast Invoicing Item Selector
+                        </h3>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Billing Outlet</label>
+                                <select id="billStoreSelect" onchange="loadBillingStoreItems()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Available Product</label>
+                                <select id="billItemSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Quantity</label>
+                                <div class="flex space-x-2">
+                                    <input type="number" id="billItemQty" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                                    <button onclick="addItemToCart()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-white font-semibold text-xs flex items-center">
+                                        <i class="fa-solid fa-plus mr-1"></i> Add
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cart Table -->
+                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
+                        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                            <span class="text-sm font-semibold text-slate-300">Active Customer Cart</span>
+                            <button onclick="clearCart()" class="text-xs text-rose-400 hover:underline">Clear</button>
+                        </div>
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
+                                <tr>
+                                    <th class="px-4 py-2.5">Item</th>
+                                    <th class="px-4 py-2.5 text-center">Qty</th>
+                                    <th class="px-4 py-2.5 text-right">Price (₹)</th>
+                                    <th class="px-4 py-2.5 text-right">Total (₹)</th>
+                                    <th class="px-4 py-2.5 text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cartTableBody" class="divide-y divide-slate-700/50">
+                                <tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Cart is empty.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Checkout Card -->
+                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between space-y-4">
+                    <div>
+                        <h3 class="text-base font-bold text-white mb-4 flex items-center">
+                            <i class="fa-solid fa-file-invoice-dollar text-emerald-400 mr-2"></i> Checkout & Tax Breakdown
+                        </h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Customer Name</label>
+                                <input type="text" id="billCustName" placeholder="e.g. Rahul Sharma" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Customer Mobile</label>
+                                <input type="text" id="billCustPhone" placeholder="e.g. 9822114455" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400 block mb-1">Payment Method</label>
+                                <select id="billPayMode" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                                    <option value="UPI">UPI / Instant QR</option>
+                                    <option value="Cash">Cash at Counter</option>
+                                    <option value="Card">Debit / Credit Card</option>
+                                    <option value="NetBanking">Net Banking</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mt-6 p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-sm">
+                            <div class="flex justify-between text-slate-400">
+                                <span>Subtotal</span>
+                                <span id="cartSubtotal">₹0.00</span>
+                            </div>
+                            <div class="flex justify-between text-slate-400">
+                                <span>GST (Included 18%)</span>
+                                <span id="cartTax">₹0.00</span>
+                            </div>
+                            <div class="pt-2 border-t border-slate-700 flex justify-between font-bold text-base text-emerald-400">
+                                <span>Total Payable</span>
+                                <span id="cartGrandTotal">₹0.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="submitBill()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-check"></i><span>Complete Sale & Deduct Stock</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recent Invoices Table -->
+            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5">
+                <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left text-cyan-400 mr-2"></i> Recent Invoices Generated
+                </h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
+                            <tr>
+                                <th class="p-2.5">Invoice #</th>
+                                <th class="p-2.5">Store Outlet</th>
+                                <th class="p-2.5">Billed By</th>
+                                <th class="p-2.5">Customer</th>
+                                <th class="p-2.5">Payment</th>
+                                <th class="p-2.5 text-right">Amount (₹)</th>
+                                <th class="p-2.5 text-center">Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billsHistoryBody" class="divide-y divide-slate-800">
+                            <tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. STORE OUTLETS -->
+        <section id="view-stores" class="hidden space-y-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white">Franchise Network Management</h2>
+                    <p class="text-xs text-slate-400">View and manage registered physical franchises across regions.</p>
+                </div>
+                <button id="btnRegisterStore" onclick="openModal('addStoreModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
+                    <i class="fa-solid fa-plus"></i><span>Register New Franchise Branch</span>
+                </button>
+            </div>
+
+            <div id="storesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+        </section>
+    </main>
+
+    <!-- AUTH MODAL (SIGN IN / SIGN UP) -->
+    <div id="authModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <!-- Modal Tabs -->
+            <div class="flex border-b border-slate-700 mb-5">
+                <button onclick="toggleAuthForm('signin')" id="btnAuthTabSignin" class="flex-1 pb-3 text-center font-bold text-sm text-cyan-400 border-b-2 border-cyan-400">
+                    Sign In
+                </button>
+                <button onclick="toggleAuthForm('signup')" id="btnAuthTabSignup" class="flex-1 pb-3 text-center font-semibold text-sm text-slate-400 hover:text-slate-200">
+                    Register New Account
+                </button>
+            </div>
+
+            <!-- SIGN IN FORM -->
+            <form id="formSignin" onsubmit="handleSigninSubmit(event)" class="space-y-4">
+                <div class="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
+                    <strong>Demo Credentials:</strong><br>
+                    • Brand Owner (Global): <code>owner</code> / <code>admin123</code><br>
+                    • Metro Branch Manager: <code>manager1</code> / <code>pass123</code>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Username</label>
+                    <input type="text" id="signinUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Password</label>
+                    <input type="password" id="signinPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold rounded-lg text-sm transition">
+                    Sign In to Cloud
+                </button>
+            </form>
+
+            <!-- SIGN UP FORM -->
+            <form id="formSignup" onsubmit="handleSignupSubmit(event)" class="space-y-3 hidden">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Account Role</label>
+                    <select id="signupRole" onchange="onSignupRoleChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-cyan-300">
+                        <option value="MANAGER">Franchise Store Manager (Outlet Scope)</option>
+                        <option value="ADMIN">Main Brand Owner (Full Cloud Admin Scope)</option>
+                    </select>
+                </div>
+                <div id="signupStoreField">
+                    <label class="text-xs text-slate-400 block mb-1">Assign Franchise Branch</label>
+                    <select id="signupStoreId" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Full Name</label>
+                    <input type="text" id="signupFullName" placeholder="e.g. Vikram Sharma" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Username</label>
+                    <input type="text" id="signupUsername" placeholder="e.g. vikram_branch" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Password</label>
+                    <input type="password" id="signupPassword" placeholder="Minimum 6 characters" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-sm transition">
+                    Create Franchise Account
+                </button>
+            </form>
+
+            <button onclick="closeModal('authModal')" class="w-full text-center text-xs text-slate-500 hover:text-slate-300 mt-4">Close Window</button>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD / UPDATE STOCK -->
+    <div id="addStockModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-white">Update Franchise Inventory</h3>
+                <button onclick="closeModal('addStockModal')" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onsubmit="handleStockSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Target Outlet</label>
+                    <select id="modalStoreId" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">SKU / Item Code</label>
+                    <input type="text" id="modalItemCode" placeholder="e.g. SKU-104" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Product Name</label>
+                    <input type="text" id="modalItemName" placeholder="e.g. Digital Thermometer" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Category</label>
+                        <input type="text" id="modalItemCat" placeholder="Hardware / Tools" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Unit Price (₹)</label>
+                        <input type="number" step="0.01" id="modalItemPrice" placeholder="499" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Quantity in Stock</label>
+                        <input type="number" id="modalItemQty" placeholder="50" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-400 block mb-1">Reorder Alert Min.</label>
+                        <input type="number" id="modalItemReorder" value="10" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeModal('addStockModal')" class="px-4 py-2 bg-slate-700 text-slate-200 rounded-lg text-xs">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold rounded-lg text-xs">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD STORE BRANCH -->
+    <div id="addStoreModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-base font-bold text-white">Register New Franchise Branch</h3>
+                <button onclick="closeModal('addStoreModal')" class="text-slate-400 hover:text-white">&times;</button>
+            </div>
+            <form onsubmit="handleStoreSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Branch Name</label>
+                    <input type="text" id="modalNewStoreName" placeholder="e.g. Pune Express Outlet" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Branch Code (Unique)</label>
+                    <input type="text" id="modalNewStoreCode" placeholder="e.g. STR-004" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white uppercase">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Location / Address</label>
+                    <input type="text" id="modalNewStoreLoc" placeholder="e.g. Kasba Bawada, Kolhapur" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Designated Store Manager</label>
+                    <input type="text" id="modalNewStoreMgr" placeholder="e.g. Sagar Jadhav" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                </div>
+                <div class="flex justify-end space-x-2 pt-3">
+                    <button type="button" onclick="closeModal('addStoreModal')" class="px-4 py-2 bg-slate-700 text-slate-200 rounded-lg text-xs">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs">Register Outlet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JS SCRIPT -->
+    <script>
+        let currentUser = null;
+        let storesData = [];
+        let inventoryData = [];
+        let cartItems = [];
+        let revenueChartInstance = null;
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function openAuthModal(mode) {
+            openModal('authModal');
+            toggleAuthForm(mode);
+        }
+
+        function toggleAuthForm(mode) {
+            const isSignin = mode === 'signin';
+            document.getElementById('formSignin').classList.toggle('hidden', !isSignin);
+            document.getElementById('formSignup').classList.toggle('hidden', isSignin);
+            
+            document.getElementById('btnAuthTabSignin').className = isSignin
+                ? 'flex-1 pb-3 text-center font-bold text-sm text-cyan-400 border-b-2 border-cyan-400'
+                : 'flex-1 pb-3 text-center font-semibold text-sm text-slate-400 hover:text-slate-200';
+
+            document.getElementById('btnAuthTabSignup').className = !isSignin
+                ? 'flex-1 pb-3 text-center font-bold text-sm text-cyan-400 border-b-2 border-cyan-400'
+                : 'flex-1 pb-3 text-center font-semibold text-sm text-slate-400 hover:text-slate-200';
+        }
+
+        function onSignupRoleChange() {
+            const role = document.getElementById('signupRole').value;
+            document.getElementById('signupStoreField').style.display = (role === 'ADMIN') ? 'none' : 'block';
+        }
+
+        // AUTH CHECK
+        async function checkAuthSession() {
+            const res = await fetch('/api/auth/session');
+            const data = await res.json();
+            if (data.logged_in) {
+                currentUser = data.user;
+                document.getElementById('userProfileBadge').classList.remove('hidden');
+                document.getElementById('guestAuthButtons').classList.add('hidden');
+                document.getElementById('userFullName').innerText = currentUser.full_name;
+                document.getElementById('userRoleTag').innerText = currentUser.role === 'ADMIN' 
+                    ? 'OWNER | All Branches Access' 
+                    : `MANAGER | ${currentUser.store_name}`;
+                
+                // Restrict UI permissions
+                if (currentUser.role === 'MANAGER') {
+                    document.getElementById('btnRegisterStore').style.display = 'none';
+                } else {
+                    document.getElementById('btnRegisterStore').style.display = 'flex';
+                }
+            } else {
+                currentUser = null;
+                document.getElementById('userProfileBadge').classList.add('hidden');
+                document.getElementById('guestAuthButtons').classList.remove('hidden');
+            }
+        }
+
+        async function handleSigninSubmit(e) {
+            e.preventDefault();
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('signinUsername').value,
+                    password: document.getElementById('signinPassword').value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeModal('authModal');
+                await checkAuthSession();
+                await loadStores();
+                loadReports();
+                loadInventory();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function handleSignupSubmit(e) {
+            e.preventDefault();
+            const role = document.getElementById('signupRole').value;
+            const payload = {
+                role: role,
+                store_id: role === 'MANAGER' ? document.getElementById('signupStoreId').value : null,
+                full_name: document.getElementById('signupFullName').value,
+                username: document.getElementById('signupUsername').value,
+                password: document.getElementById('signupPassword').value
+            };
+            const res = await fetch('/api/auth/signup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                toggleAuthForm('signin');
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function handleLogout() {
+            await fetch('/api/auth/logout', { method: 'POST' });
+            window.location.reload();
+        }
+
+        function switchTab(tabId) {
+            ['dashboard', 'inventory', 'billing', 'stores'].forEach(t => {
+                document.getElementById('view-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).className = 'tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800';
+            });
+            document.getElementById('view-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).className = 'tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-sm';
+            
+            if (tabId === 'dashboard') loadReports();
+            if (tabId === 'inventory') loadInventory();
+            if (tabId === 'billing') loadBillsHistory();
+            if (tabId === 'stores') loadStores();
+        }
+
+        async function loadStores() {
+            try {
+                const res = await fetch('/api/stores');
+                storesData = await res.json();
+                
+                const activeSelect = document.getElementById('activeStoreSelect');
+                const billStoreSelect = document.getElementById('billStoreSelect');
+                const modalStoreSelect = document.getElementById('modalStoreId');
+                const signupStoreSelect = document.getElementById('signupStoreId');
+                const storesGrid = document.getElementById('storesGrid');
+
+                activeSelect.innerHTML = (currentUser && currentUser.role === 'MANAGER') 
+                    ? '' 
+                    : '<option value="all">Global (All Franchise Branches)</option>';
+                billStoreSelect.innerHTML = '';
+                modalStoreSelect.innerHTML = '';
+                signupStoreSelect.innerHTML = '';
+                storesGrid.innerHTML = '';
+
+                storesData.forEach(st => {
+                    // Populate signup store choices
+                    signupStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+
+                    // If logged in as manager, restrict active choices to their assigned outlet
+                    if (currentUser && currentUser.role === 'MANAGER') {
+                        if (st.id === currentUser.store_id) {
+                            activeSelect.innerHTML += `<option value="${st.id}" selected>${st.name} (${st.code})</option>`;
+                            billStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                            modalStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                        }
+                    } else {
+                        activeSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                        billStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                        modalStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                    }
+
+                    storesGrid.innerHTML += `
+                        <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="px-2 py-0.5 rounded text-xs font-mono font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">${st.code}</span>
+                                    <span class="text-xs text-slate-400"><i class="fa-solid fa-location-dot mr-1"></i>${st.location || 'Central'}</span>
+                                </div>
+                                <h3 class="text-base font-bold text-white mb-1">${st.name}</h3>
+                                <p class="text-xs text-slate-400 mb-3"><i class="fa-solid fa-user-tie mr-1"></i> In-Charge: ${st.manager || 'N/A'}</p>
+                            </div>
+                            <div class="pt-3 border-t border-slate-700/50 flex justify-between items-center text-xs">
+                                <div>
+                                    <span class="text-slate-400 block">Total Units</span>
+                                    <span class="font-bold text-slate-200">${st.total_stock}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-slate-400 block">Total Sales</span>
+                                    <span class="font-bold text-emerald-400">₹${Number(st.total_revenue).toLocaleString('en-IN')}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                loadBillingStoreItems();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        function onActiveStoreChange() {
+            loadReports();
+            loadInventory();
+        }
+
+        async function loadInventory() {
+            const activeStore = document.getElementById('activeStoreSelect').value;
+            const res = await fetch(`/api/inventory?store_id=${activeStore}`);
+            inventoryData = await res.json();
+            
+            const tbody = document.getElementById('inventoryTableBody');
+            tbody.innerHTML = '';
+            
+            if (inventoryData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-6 text-center text-slate-500">No inventory found for selected outlet.</td></tr>';
+                return;
+            }
+
+            inventoryData.forEach(item => {
+                const isLow = item.quantity <= item.reorder_level;
+                const statusBadge = isLow 
+                    ? `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Low Stock</span>`
+                    : `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Optimal</span>`;
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="px-5 py-3 font-medium text-slate-300">${item.store_name}</td>
+                        <td class="px-5 py-3 font-mono text-cyan-400 text-xs">${item.item_code}</td>
+                        <td class="px-5 py-3 font-semibold text-white">${item.item_name}</td>
+                        <td class="px-5 py-3 text-slate-400 text-xs">${item.category || 'General'}</td>
+                        <td class="px-5 py-3 text-right font-medium text-slate-200">₹${Number(item.unit_price).toFixed(2)}</td>
+                        <td class="px-5 py-3 text-center font-bold ${isLow ? 'text-rose-400' : 'text-slate-100'}">${item.quantity}</td>
+                        <td class="px-5 py-3 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function loadBillingStoreItems() {
+            const storeId = document.getElementById('billStoreSelect').value;
+            if (!storeId) return;
+            const res = await fetch(`/api/inventory?store_id=${storeId}`);
+            const items = await res.json();
+            const itemSelect = document.getElementById('billItemSelect');
+            itemSelect.innerHTML = '';
+            items.forEach(it => {
+                itemSelect.innerHTML += `<option value="${it.item_code}" data-name="${it.item_name}" data-price="${it.unit_price}" data-stock="${it.quantity}">${it.item_name} (₹${it.unit_price} | Stock: ${it.quantity})</option>`;
+            });
+        }
+
+        function addItemToCart() {
+            const select = document.getElementById('billItemSelect');
+            if (!select.value) return alert('Please choose an item');
+            const selectedOpt = select.options[select.selectedIndex];
+            const itemCode = select.value;
+            const itemName = selectedOpt.getAttribute('data-name');
+            const unitPrice = parseFloat(selectedOpt.getAttribute('data-price'));
+            const maxStock = parseInt(selectedOpt.getAttribute('data-stock'));
+            const qty = parseInt(document.getElementById('billItemQty').value) || 1;
+
+            if (qty > maxStock) {
+                alert(`Requested quantity (${qty}) exceeds current branch stock (${maxStock})!`);
+                return;
+            }
+
+            const existingIndex = cartItems.findIndex(i => i.item_code === itemCode);
+            if (existingIndex >= 0) {
+                if (cartItems[existingIndex].quantity + qty > maxStock) {
+                    alert(`Total in cart cannot exceed available stock (${maxStock})!`);
+                    return;
+                }
+                cartItems[existingIndex].quantity += qty;
+            } else {
+                cartItems.push({ item_code: itemCode, item_name: itemName, unit_price: unitPrice, quantity: qty });
+            }
+            renderCart();
+        }
+
+        function removeCartItem(idx) { cartItems.splice(idx, 1); renderCart(); }
+        function clearCart() { cartItems = []; renderCart(); }
+
+        function renderCart() {
+            const tbody = document.getElementById('cartTableBody');
+            tbody.innerHTML = '';
+            if (cartItems.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Cart is empty.</td></tr>';
+                document.getElementById('cartSubtotal').innerText = '₹0.00';
+                document.getElementById('cartTax').innerText = '₹0.00';
+                document.getElementById('cartGrandTotal').innerText = '₹0.00';
+                return;
+            }
+
+            let subtotal = 0;
+            cartItems.forEach((it, idx) => {
+                const total = it.quantity * it.unit_price;
+                subtotal += total;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-4 py-2 font-medium text-white">${it.item_name}</td>
+                        <td class="px-4 py-2 text-center">${it.quantity}</td>
+                        <td class="px-4 py-2 text-right">₹${it.unit_price.toFixed(2)}</td>
+                        <td class="px-4 py-2 text-right text-emerald-400 font-semibold">₹${total.toFixed(2)}</td>
+                        <td class="px-4 py-2 text-center">
+                            <button onclick="removeCartItem(${idx})" class="text-rose-400 hover:text-rose-300"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            const tax = subtotal * 0.18;
+            document.getElementById('cartSubtotal').innerText = `₹${(subtotal - tax).toFixed(2)}`;
+            document.getElementById('cartTax').innerText = `₹${tax.toFixed(2)}`;
+            document.getElementById('cartGrandTotal').innerText = `₹${subtotal.toFixed(2)}`;
+        }
+
+        async function submitBill() {
+            if (!currentUser) return openAuthModal('signin');
+            if (cartItems.length === 0) return alert('Please add at least one item to cart!');
+
+            const storeId = document.getElementById('billStoreSelect').value;
+            const customerName = document.getElementById('billCustName').value || 'Walk-in Customer';
+            const customerPhone = document.getElementById('billCustPhone').value || '';
+            const paymentMode = document.getElementById('billPayMode').value;
+
+            const res = await fetch('/api/bills', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    store_id: storeId,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    payment_mode: paymentMode,
+                    items: cartItems
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ Cloud Bill Generated Successfully!
+Invoice No: ${data.bill_number}
+Amount: ₹${data.total_amount}`);
+                clearCart();
+                document.getElementById('billCustName').value = '';
+                document.getElementById('billCustPhone').value = '';
+                loadBillingStoreItems();
+                loadBillsHistory();
+                loadReports();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        }
+
+        async function loadBillsHistory() {
+            const res = await fetch('/api/bills');
+            const bills = await res.json();
+            const tbody = document.getElementById('billsHistoryBody');
+            tbody.innerHTML = '';
+            if (!bills.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet.</td></tr>';
+                return;
+            }
+            bills.forEach(b => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="p-2.5 font-mono text-cyan-400">${b.bill_number}</td>
+                        <td class="p-2.5">${b.store_name}</td>
+                        <td class="p-2.5 text-indigo-300 font-mono text-[11px]">${b.created_by_user || 'system'}</td>
+                        <td class="p-2.5 text-slate-200">${b.customer_name}</td>
+                        <td class="p-2.5"><span class="px-2 py-0.5 bg-slate-800 rounded border border-slate-700">${b.payment_mode}</span></td>
+                        <td class="p-2.5 text-right font-bold text-emerald-400">₹${Number(b.total_amount).toFixed(2)}</td>
+                        <td class="p-2.5 text-center text-slate-400">${new Date(b.created_at).toLocaleString()}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function handleStockSubmit(e) {
+            e.preventDefault();
+            if (!currentUser) return openAuthModal('signin');
+            const payload = {
+                store_id: document.getElementById('modalStoreId').value,
+                item_code: document.getElementById('modalItemCode').value,
+                item_name: document.getElementById('modalItemName').value,
+                category: document.getElementById('modalItemCat').value,
+                unit_price: document.getElementById('modalItemPrice').value,
+                quantity: document.getElementById('modalItemQty').value,
+                reorder_level: document.getElementById('modalItemReorder').value
+            };
+            const res = await fetch('/api/inventory', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeModal('addStockModal');
+                loadInventory();
+                loadReports();
+                loadBillingStoreItems();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function handleStoreSubmit(e) {
+            e.preventDefault();
+            if (!currentUser || currentUser.role !== 'ADMIN') {
+                return alert('Only Main Brand Owner can register new branches.');
+            }
+            const payload = {
+                name: document.getElementById('modalNewStoreName').value,
+                code: document.getElementById('modalNewStoreCode').value,
+                location: document.getElementById('modalNewStoreLoc').value,
+                manager: document.getElementById('modalNewStoreMgr').value
+            };
+            const res = await fetch('/api/stores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeModal('addStoreModal');
+                loadStores();
+                loadReports();
+            } else {
+                alert(data.message);
+            }
+        }
+
+        async function loadReports() {
+            const res = await fetch('/api/reports');
+            const data = await res.json();
+
+            document.getElementById('statTotalRevenue').innerText = `₹${Number(data.summary.total_revenue).toLocaleString('en-IN')}`;
+            document.getElementById('statTotalBills').innerText = data.summary.total_bills;
+            document.getElementById('statTotalStores').innerText = data.summary.total_stores;
+            document.getElementById('statTotalUnits').innerText = data.summary.total_stock_units;
+
+            const alertContainer = document.getElementById('lowStockList');
+            alertContainer.innerHTML = '';
+            if (!data.low_stock_alerts.length) {
+                alertContainer.innerHTML = '<p class="text-emerald-400 text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Stock levels optimal!</p>';
+            } else {
+                data.low_stock_alerts.forEach(item => {
+                    alertContainer.innerHTML += `
+                        <div class="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-between">
+                            <div>
+                                <span class="font-semibold text-rose-300 block">${item.item_name} (${item.item_code})</span>
+                                <span class="text-xs text-slate-400">Outlet: ${item.store_name}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-xs font-bold text-rose-400">${item.quantity} units left</span>
+                                <span class="text-[10px] text-slate-500 block">Min req: ${item.reorder_level}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            const ctx = document.getElementById('storeRevenueChart').getContext('2d');
+            const labels = data.store_performance.map(s => s.store_name);
+            const revenues = data.store_performance.map(s => s.revenue);
+
+            if (revenueChartInstance) revenueChartInstance.destroy();
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Total Sales (₹)',
+                        data: revenues,
+                        backgroundColor: 'rgba(6, 182, 212, 0.7)',
+                        borderColor: 'rgb(6, 182, 212)',
+                        borderWidth: 1.5,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await checkAuthSession();
+            await loadStores();
+            loadReports();
+        });
+    </script>
+</body>
+</html>
