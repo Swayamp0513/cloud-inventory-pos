@@ -2,7 +2,7 @@ import os
 import sqlite3
 from datetime import datetime
 from functools import wraps
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from flask import Flask, render_template, request, jsonify, session
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
@@ -18,7 +18,6 @@ def init_db():
     conn = get_db()
     cursor = conn.cursor()
 
-    # Stores table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,7 +29,6 @@ def init_db():
         )
     ''')
 
-    # Users table: Roles = 'ADMIN' (Brand Owner) or 'MANAGER' (Franchise Store Manager)
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,7 +42,6 @@ def init_db():
         )
     ''')
 
-    # Inventory items table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -61,7 +58,6 @@ def init_db():
         )
     ''')
 
-    # Bills table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS bills (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,7 +73,6 @@ def init_db():
         )
     ''')
 
-    # Bill items table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS bill_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,24 +85,20 @@ def init_db():
         )
     ''')
 
-    # Seed initial franchise stores if empty
     cursor.execute('SELECT COUNT(*) as cnt FROM stores')
     if cursor.fetchone()['cnt'] == 0:
         cursor.execute("INSERT INTO stores (name, code, location, manager) VALUES ('Central Flagship Hub', 'HUB-001', 'City Center HQ', 'Admin Owner')")
         cursor.execute("INSERT INTO stores (name, code, location, manager) VALUES ('Metro Station Express', 'STR-002', 'Terminal 2 Concourse', 'Sneha Rao')")
         cursor.execute("INSERT INTO stores (name, code, location, manager) VALUES ('Suburban Galleria Outlet', 'STR-003', 'Sector 14 Mall', 'Amit Deshmukh')")
 
-    # Seed Default Users if empty
     cursor.execute('SELECT COUNT(*) as cnt FROM users')
     if cursor.fetchone()['cnt'] == 0:
-        # Default Brand Owner Admin: owner / admin123
         owner_hash = generate_password_hash("admin123")
         cursor.execute('''
             INSERT INTO users (username, password_hash, full_name, role, store_id)
             VALUES (?, ?, ?, ?, NULL)
         ''', ('owner', owner_hash, 'Global Brand Owner', 'ADMIN'))
 
-        # Default Franchise Managers: manager1 / pass123 (tied to Store 2), manager2 / pass123 (tied to Store 3)
         mgr_hash = generate_password_hash("pass123")
         cursor.execute('''
             INSERT INTO users (username, password_hash, full_name, role, store_id)
@@ -119,7 +110,6 @@ def init_db():
             VALUES (?, ?, ?, ?, ?)
         ''', ('manager2', mgr_hash, 'Amit Deshmukh (Galleria Manager)', 'MANAGER', 3))
 
-        # Sample initial inventory
         items = [
             (1, 'SKU-001', 'Wireless Barcode Scanner', 'Electronics', 45, 2499.0, 10),
             (1, 'SKU-002', 'Thermal Billing Rolls (Pack of 10)', 'Supplies', 120, 450.0, 25),
@@ -134,7 +124,6 @@ def init_db():
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', it)
 
-        # Seed initial bills
         cursor.execute("INSERT INTO bills (bill_number, store_id, created_by_user, customer_name, customer_phone, total_amount, payment_mode, created_at) VALUES ('INV-2026-1001', 1, 'owner', 'Rahul Verma', '9876543210', 2949.0, 'UPI', datetime('now', '-2 days'))")
         b1 = cursor.lastrowid
         cursor.execute("INSERT INTO bill_items (bill_id, item_name, quantity, unit_price, total_price) VALUES (?, 'Wireless Barcode Scanner', 1, 2499.0, 2499.0)", (b1,))
@@ -149,12 +138,11 @@ def init_db():
 
 init_db()
 
-# --- AUTH DECORATOR ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            return jsonify({'success': False, 'message': 'Unauthorized. Please sign in.'}), 401
+            return jsonify({'success': False, 'message': 'Authentication required. Please sign in.'}), 401
         return f(*args, **kwargs)
     return decorated_function
 
@@ -185,7 +173,7 @@ def signup():
     username = data.get('username', '').strip().lower()
     password = data.get('password', '')
     full_name = data.get('full_name', '').strip()
-    role = data.get('role', 'MANAGER').upper() # 'ADMIN' or 'MANAGER'
+    role = data.get('role', 'MANAGER').upper()
     store_id = data.get('store_id')
 
     if not username or not password or not full_name:
@@ -201,7 +189,7 @@ def signup():
         cursor.execute('''
             INSERT INTO users (username, password_hash, full_name, role, store_id)
             VALUES (?, ?, ?, ?, ?)
-        ''', (username, pw_hash, full_name, role, store_id if role == 'MANAGER' else None))
+        ''', (username, pw_hash, full_name, role, int(store_id) if role == 'MANAGER' else None))
         conn.commit()
         return jsonify({'success': True, 'message': 'Registration successful! You can now sign in.'})
     except sqlite3.IntegrityError:
@@ -252,8 +240,19 @@ def logout():
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out successfully'})
 
-# --- STORE APIS ---
+# --- PUBLIC STORE LIST FOR SIGNUP DROPDOWN ONLY ---
+@app.route('/api/stores/public', methods=['GET'])
+def get_public_stores():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name, code FROM stores ORDER BY id ASC')
+    stores = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return jsonify(stores)
+
+# --- PROTECTED STORE APIS ---
 @app.route('/api/stores', methods=['GET', 'POST'])
+@login_required
 def handle_stores():
     conn = get_db()
     cursor = conn.cursor()
@@ -275,36 +274,44 @@ def handle_stores():
         finally:
             conn.close()
 
-    # GET stores: Admins see all stores; Managers see their assigned store (or all for selection during signup)
-    cursor.execute('''
-        SELECT s.*, 
-               COUNT(DISTINCT i.id) as total_items, 
-               COALESCE(SUM(i.quantity), 0) as total_stock,
-               COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.store_id = s.id), 0) as total_revenue
-        FROM stores s
-        LEFT JOIN inventory i ON s.id = i.store_id
-        GROUP BY s.id
-        ORDER BY s.id ASC
-    ''')
+    # If manager, only return their own store details
+    if session.get('role') == 'MANAGER':
+        cursor.execute('''
+            SELECT s.*, 
+                   COUNT(DISTINCT i.id) as total_items, 
+                   COALESCE(SUM(i.quantity), 0) as total_stock,
+                   COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.store_id = s.id), 0) as total_revenue
+            FROM stores s
+            LEFT JOIN inventory i ON s.id = i.store_id
+            WHERE s.id = ?
+            GROUP BY s.id
+        ''', (session.get('store_id'),))
+    else:
+        cursor.execute('''
+            SELECT s.*, 
+                   COUNT(DISTINCT i.id) as total_items, 
+                   COALESCE(SUM(i.quantity), 0) as total_stock,
+                   COALESCE((SELECT SUM(b.total_amount) FROM bills b WHERE b.store_id = s.id), 0) as total_revenue
+            FROM stores s
+            LEFT JOIN inventory i ON s.id = i.store_id
+            GROUP BY s.id
+            ORDER BY s.id ASC
+        ''')
     stores = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return jsonify(stores)
 
-# --- INVENTORY APIS ---
+# --- PROTECTED INVENTORY APIS ---
 @app.route('/api/inventory', methods=['GET', 'POST'])
+@login_required
 def handle_inventory():
     conn = get_db()
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        if 'user_id' not in session:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Login required'}), 401
-
         data = request.json
         store_id = int(data['store_id'])
 
-        # Role enforcement: Franchise manager cannot edit stock of another franchise!
         if session.get('role') == 'MANAGER' and session.get('store_id') != store_id:
             conn.close()
             return jsonify({'success': False, 'message': 'Access Denied: You can only manage inventory for your assigned branch.'}), 403
@@ -339,13 +346,12 @@ def handle_inventory():
     '''
     params = []
 
-    # If manager is logged in and requests inventory, isolate to their store if requested or default
     if session.get('role') == 'MANAGER':
         query += ' WHERE i.store_id = ?'
         params.append(session.get('store_id'))
     elif store_id and store_id != 'all':
         query += ' WHERE i.store_id = ?'
-        params.append(store_id)
+        params.append(int(store_id))
 
     query += ' ORDER BY i.item_name ASC'
     cursor.execute(query, params)
@@ -353,21 +359,17 @@ def handle_inventory():
     conn.close()
     return jsonify(items)
 
-# --- BILLING & POS ---
+# --- PROTECTED BILLING & POS ---
 @app.route('/api/bills', methods=['GET', 'POST'])
+@login_required
 def handle_bills():
     conn = get_db()
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        if 'user_id' not in session:
-            conn.close()
-            return jsonify({'success': False, 'message': 'Login required to generate bills'}), 401
-
         data = request.json
         store_id = int(data['store_id'])
 
-        # Managers can only bill from their own branch
         if session.get('role') == 'MANAGER' and session.get('store_id') != store_id:
             conn.close()
             return jsonify({'success': False, 'message': 'Unauthorized: Cannot create bills for other outlets'}), 403
@@ -420,7 +422,6 @@ def handle_bills():
         finally:
             conn.close()
 
-    # GET bills
     query = '''
         SELECT b.*, s.name as store_name, s.code as store_code
         FROM bills b
@@ -432,7 +433,7 @@ def handle_bills():
         params.append(session.get('store_id'))
     elif request.args.get('store_id') and request.args.get('store_id') != 'all':
         query += ' WHERE b.store_id = ?'
-        params.append(request.args.get('store_id'))
+        params.append(int(request.args.get('store_id')))
 
     query += ' ORDER BY b.created_at DESC LIMIT 50'
     cursor.execute(query, params)
@@ -440,23 +441,32 @@ def handle_bills():
     conn.close()
     return jsonify(bills)
 
-# --- BUSINESS ANALYTICS & REPORTS ---
+# --- PROTECTED BUSINESS ANALYTICS & REPORTS (NOW SUPPORTS store_id FILTER FOR ADMIN) ---
 @app.route('/api/reports')
+@login_required
 def get_reports():
     conn = get_db()
     cursor = conn.cursor()
 
     is_manager = session.get('role') == 'MANAGER'
-    mgr_store = session.get('store_id')
+    requested_store = request.args.get('store_id', 'all')
 
+    # Determine effective store filter
+    target_store_id = None
     if is_manager:
-        cursor.execute('SELECT COUNT(*) as store_count FROM stores WHERE id = ?', (mgr_store,))
+        target_store_id = session.get('store_id')
+    elif requested_store and requested_store != 'all':
+        target_store_id = int(requested_store)
+
+    if target_store_id is not None:
+        # Filtered single-franchise report
+        cursor.execute('SELECT COUNT(*) as store_count FROM stores WHERE id = ?', (target_store_id,))
         store_count = cursor.fetchone()['store_count']
 
-        cursor.execute('SELECT COALESCE(SUM(quantity), 0) as total_units, COUNT(*) as total_skus FROM inventory WHERE store_id = ?', (mgr_store,))
+        cursor.execute('SELECT COALESCE(SUM(quantity), 0) as total_units, COUNT(*) as total_skus FROM inventory WHERE store_id = ?', (target_store_id,))
         inv_stat = cursor.fetchone()
 
-        cursor.execute('SELECT COALESCE(SUM(total_amount), 0) as total_sales, COUNT(*) as bill_count FROM bills WHERE store_id = ?', (mgr_store,))
+        cursor.execute('SELECT COALESCE(SUM(total_amount), 0) as total_sales, COUNT(*) as bill_count FROM bills WHERE store_id = ?', (target_store_id,))
         sales_stat = cursor.fetchone()
 
         cursor.execute('''
@@ -465,7 +475,7 @@ def get_reports():
             LEFT JOIN bills b ON s.id = b.store_id
             WHERE s.id = ?
             GROUP BY s.id
-        ''', (mgr_store,))
+        ''', (target_store_id,))
         store_sales = [dict(r) for r in cursor.fetchall()]
 
         cursor.execute('''
@@ -474,7 +484,7 @@ def get_reports():
             JOIN stores s ON i.store_id = s.id
             WHERE i.store_id = ? AND i.quantity <= i.reorder_level
             ORDER BY i.quantity ASC
-        ''', (mgr_store,))
+        ''', (target_store_id,))
         low_stocks = [dict(r) for r in cursor.fetchall()]
 
         cursor.execute('''
@@ -485,10 +495,10 @@ def get_reports():
             GROUP BY bi.item_name
             ORDER BY sold_qty DESC
             LIMIT 5
-        ''', (mgr_store,))
+        ''', (target_store_id,))
         top_items = [dict(r) for r in cursor.fetchall()]
     else:
-        # Brand Owner Global View
+        # Global Brand Owner View (All Stores)
         cursor.execute('SELECT COUNT(*) as store_count FROM stores')
         store_count = cursor.fetchone()['store_count']
 
