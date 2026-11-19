@@ -4,11 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OmniCloud POS & Multi-Store Inventory Hub</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style> body { font-family: 'Inter', sans-serif; } </style>
@@ -30,11 +27,10 @@
             
             <!-- User Status & Auth Section -->
             <div class="flex items-center space-x-3">
-                <!-- If Logged In -->
                 <div id="userProfileBadge" class="hidden flex items-center space-x-3">
                     <div class="text-right hidden sm:block">
-                        <div id="userFullName" class="text-sm font-semibold text-white">Brand Owner</div>
-                        <div id="userRoleTag" class="text-[11px] text-cyan-400 font-mono">ADMIN | Global Access</div>
+                        <div id="userFullName" class="text-sm font-semibold text-white"></div>
+                        <div id="userRoleTag" class="text-[11px] text-cyan-400 font-mono"></div>
                     </div>
                     <button onclick="handleLogout()" class="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold transition flex items-center space-x-1.5">
                         <i class="fa-solid fa-right-from-bracket"></i>
@@ -42,321 +38,55 @@
                     </button>
                 </div>
 
-                <!-- If Guest / Logged Out -->
-                <div id="guestAuthButtons" class="flex items-center space-x-2">
-                    <button onclick="openAuthModal('signin')" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 rounded-lg text-xs font-semibold transition">
-                        Sign In
-                    </button>
-                    <button onclick="openAuthModal('signup')" class="px-3.5 py-1.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold rounded-lg text-xs transition shadow-sm">
-                        Create Account
-                    </button>
+                <div id="guestHeaderBadge" class="flex items-center space-x-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-lg">
+                    <i class="fa-solid fa-lock"></i>
+                    <span>Authentication Required</span>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Sub-Nav & Scope Filter -->
-    <div class="bg-slate-800/40 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-2">
-            <div class="flex space-x-2 overflow-x-auto">
-                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-sm">
-                    <i class="fa-solid fa-chart-line"></i><span>Cloud Analytics</span>
-                </button>
-                <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
-                    <i class="fa-solid fa-boxes-stacked"></i><span>Franchise Inventory</span>
-                </button>
-                <button onclick="switchTab('billing')" id="tab-billing" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
-                    <i class="fa-solid fa-cash-register"></i><span>Cloud POS & Billing</span>
-                </button>
-                <button onclick="switchTab('stores')" id="tab-stores" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
-                    <i class="fa-solid fa-shop"></i><span>Store Outlets</span>
-                </button>
-            </div>
-            
-            <!-- Global Store Filter Dropdown (Active for Admin, locked for Branch Manager) -->
-            <div class="flex items-center space-x-2">
-                <span class="text-xs uppercase font-semibold text-slate-400"><i class="fa-solid fa-filter mr-1"></i> Scope:</span>
-                <select id="activeStoreSelect" onchange="onActiveStoreChange()" class="bg-slate-950 border border-slate-700 text-cyan-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-cyan-500 focus:outline-none">
-                    <option value="all">Global (All Franchise Branches)</option>
-                </select>
-            </div>
-        </div>
-    </div>
-
-    <!-- MAIN BODY -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
-        <!-- 1. DASHBOARD & BUSINESS REPORTS -->
-        <section id="view-dashboard" class="space-y-6">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase font-bold text-slate-400">Total Cloud Revenue</span>
-                        <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400"><i class="fa-solid fa-indian-rupee-sign"></i></div>
-                    </div>
-                    <h3 id="statTotalRevenue" class="text-2xl font-bold text-emerald-400 mt-2">₹0</h3>
-                    <p class="text-xs text-slate-400 mt-1">Aggregated store revenue</p>
+    <!-- ===================================================================== -->
+    <!-- 1. UNAUTHENTICATED LANDING / SIGN-IN GATEWAY (SHOWN BEFORE SIGN IN)   -->
+    <!-- ===================================================================== -->
+    <div id="unauthenticatedScreen" class="flex-1 flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-slate-800/80 border border-slate-700/80 rounded-2xl p-7 shadow-2xl">
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-indigo-500/30 mb-3">
+                    <i class="fa-solid fa-shield-halved"></i>
                 </div>
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase font-bold text-slate-400">Total Invoices</span>
-                        <div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-400"><i class="fa-solid fa-receipt"></i></div>
-                    </div>
-                    <h3 id="statTotalBills" class="text-2xl font-bold text-white mt-2">0</h3>
-                    <p class="text-xs text-slate-400 mt-1">Cloud transactions logged</p>
-                </div>
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase font-bold text-slate-400">Synchronized Outlets</span>
-                        <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400"><i class="fa-solid fa-store"></i></div>
-                    </div>
-                    <h3 id="statTotalStores" class="text-2xl font-bold text-white mt-2">0</h3>
-                    <p class="text-xs text-slate-400 mt-1">Active connected branches</p>
-                </div>
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs uppercase font-bold text-slate-400">Total Stock Volume</span>
-                        <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400"><i class="fa-solid fa-cubes"></i></div>
-                    </div>
-                    <h3 id="statTotalUnits" class="text-2xl font-bold text-amber-300 mt-2">0</h3>
-                    <p class="text-xs text-slate-400 mt-1">Live inventory units</p>
-                </div>
+                <h2 class="text-xl font-bold text-white">OmniCloud Enterprise Portal</h2>
+                <p class="text-xs text-slate-400 mt-1">Sign in with your Brand Owner or Franchise Manager credentials to access live cloud data.</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Outlet Revenue Chart -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                    <h4 class="text-sm font-semibold text-slate-300 mb-4 flex items-center">
-                        <i class="fa-solid fa-chart-bar text-cyan-400 mr-2"></i> Franchise Revenue Comparison (₹)
-                    </h4>
-                    <div class="h-64">
-                        <canvas id="storeRevenueChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Low Stock Alerts -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between">
-                    <h4 class="text-sm font-semibold text-rose-400 mb-3 flex items-center">
-                        <i class="fa-solid fa-triangle-exclamation mr-2"></i> Franchise Low Stock Alerts
-                    </h4>
-                    <div class="overflow-y-auto max-h-56 pr-1">
-                        <div id="lowStockList" class="space-y-2 text-sm">
-                            <p class="text-slate-500 italic">Scanning threshold limits...</p>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
-                        <span>Real-time cloud alerts</span>
-                        <button onclick="switchTab('inventory')" class="text-cyan-400 hover:underline">Restock Now &rarr;</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 2. INVENTORY MANAGEMENT -->
-        <section id="view-inventory" class="hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Centralized Franchise Inventory</h2>
-                    <p class="text-xs text-slate-400">Update stock levels, unit pricing, and thresholds for any franchise branch.</p>
-                </div>
-                <button onclick="openModal('addStockModal')" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
-                    <i class="fa-solid fa-plus"></i><span>Add / Update Stock</span>
-                </button>
-            </div>
-
-            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
-                        <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
-                            <tr>
-                                <th class="px-5 py-3">Store Outlet</th>
-                                <th class="px-5 py-3">SKU</th>
-                                <th class="px-5 py-3">Item Name</th>
-                                <th class="px-5 py-3">Category</th>
-                                <th class="px-5 py-3 text-right">Unit Price (₹)</th>
-                                <th class="px-5 py-3 text-center">Stock</th>
-                                <th class="px-5 py-3 text-center">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventoryTableBody" class="divide-y divide-slate-700/60">
-                            <tr><td colspan="7" class="px-5 py-8 text-center text-slate-500">Loading live stock data...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- 3. BILLING & POS -->
-        <section id="view-billing" class="hidden space-y-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 space-y-4">
-                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
-                        <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                            <i class="fa-solid fa-cart-shopping text-cyan-400 mr-2"></i> Fast Invoicing Item Selector
-                        </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Billing Outlet</label>
-                                <select id="billStoreSelect" onchange="loadBillingStoreItems()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Available Product</label>
-                                <select id="billItemSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
-                            </div>
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Quantity</label>
-                                <div class="flex space-x-2">
-                                    <input type="number" id="billItemQty" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500">
-                                    <button onclick="addItemToCart()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-white font-semibold text-xs flex items-center">
-                                        <i class="fa-solid fa-plus mr-1"></i> Add
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Cart Table -->
-                    <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
-                        <div class="p-4 border-b border-slate-700 flex justify-between items-center">
-                            <span class="text-sm font-semibold text-slate-300">Active Customer Cart</span>
-                            <button onclick="clearCart()" class="text-xs text-rose-400 hover:underline">Clear</button>
-                        </div>
-                        <table class="w-full text-left text-sm text-slate-300">
-                            <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
-                                <tr>
-                                    <th class="px-4 py-2.5">Item</th>
-                                    <th class="px-4 py-2.5 text-center">Qty</th>
-                                    <th class="px-4 py-2.5 text-right">Price (₹)</th>
-                                    <th class="px-4 py-2.5 text-right">Total (₹)</th>
-                                    <th class="px-4 py-2.5 text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="cartTableBody" class="divide-y divide-slate-700/50">
-                                <tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Cart is empty.</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Checkout Card -->
-                <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between space-y-4">
-                    <div>
-                        <h3 class="text-base font-bold text-white mb-4 flex items-center">
-                            <i class="fa-solid fa-file-invoice-dollar text-emerald-400 mr-2"></i> Checkout & Tax Breakdown
-                        </h3>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Customer Name</label>
-                                <input type="text" id="billCustName" placeholder="e.g. Rahul Sharma" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
-                            </div>
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Customer Mobile</label>
-                                <input type="text" id="billCustPhone" placeholder="e.g. 9822114455" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
-                            </div>
-                            <div>
-                                <label class="text-xs text-slate-400 block mb-1">Payment Method</label>
-                                <select id="billPayMode" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
-                                    <option value="UPI">UPI / Instant QR</option>
-                                    <option value="Cash">Cash at Counter</option>
-                                    <option value="Card">Debit / Credit Card</option>
-                                    <option value="NetBanking">Net Banking</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="mt-6 p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-sm">
-                            <div class="flex justify-between text-slate-400">
-                                <span>Subtotal</span>
-                                <span id="cartSubtotal">₹0.00</span>
-                            </div>
-                            <div class="flex justify-between text-slate-400">
-                                <span>GST (Included 18%)</span>
-                                <span id="cartTax">₹0.00</span>
-                            </div>
-                            <div class="pt-2 border-t border-slate-700 flex justify-between font-bold text-base text-emerald-400">
-                                <span>Total Payable</span>
-                                <span id="cartGrandTotal">₹0.00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button onclick="submitBill()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-check"></i><span>Complete Sale & Deduct Stock</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Recent Invoices Table -->
-            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5">
-                <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center">
-                    <i class="fa-solid fa-clock-rotate-left text-cyan-400 mr-2"></i> Recent Invoices Generated
-                </h4>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs text-slate-300">
-                        <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-                            <tr>
-                                <th class="p-2.5">Invoice #</th>
-                                <th class="p-2.5">Store Outlet</th>
-                                <th class="p-2.5">Billed By</th>
-                                <th class="p-2.5">Customer</th>
-                                <th class="p-2.5">Payment</th>
-                                <th class="p-2.5 text-right">Amount (₹)</th>
-                                <th class="p-2.5 text-center">Timestamp</th>
-                            </tr>
-                        </thead>
-                        <tbody id="billsHistoryBody" class="divide-y divide-slate-800">
-                            <tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. STORE OUTLETS -->
-        <section id="view-stores" class="hidden space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-xl font-bold text-white">Franchise Network Management</h2>
-                    <p class="text-xs text-slate-400">View and manage registered physical franchises across regions.</p>
-                </div>
-                <button id="btnRegisterStore" onclick="openModal('addStoreModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
-                    <i class="fa-solid fa-plus"></i><span>Register New Franchise Branch</span>
-                </button>
-            </div>
-
-            <div id="storesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
-        </section>
-    </main>
-
-    <!-- AUTH MODAL (SIGN IN / SIGN UP) -->
-    <div id="authModal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <!-- Modal Tabs -->
+            <!-- Tabs -->
             <div class="flex border-b border-slate-700 mb-5">
                 <button onclick="toggleAuthForm('signin')" id="btnAuthTabSignin" class="flex-1 pb-3 text-center font-bold text-sm text-cyan-400 border-b-2 border-cyan-400">
                     Sign In
                 </button>
                 <button onclick="toggleAuthForm('signup')" id="btnAuthTabSignup" class="flex-1 pb-3 text-center font-semibold text-sm text-slate-400 hover:text-slate-200">
-                    Register New Account
+                    Register Account
                 </button>
             </div>
 
             <!-- SIGN IN FORM -->
             <form id="formSignin" onsubmit="handleSigninSubmit(event)" class="space-y-4">
-                <div class="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300">
-                    <strong>Demo Credentials:</strong><br>
-                    • Brand Owner (Global): <code>owner</code> / <code>admin123</code><br>
-                    • Metro Branch Manager: <code>manager1</code> / <code>pass123</code>
+                <div class="p-3 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 space-y-1">
+                    <div class="font-semibold text-indigo-200"><i class="fa-solid fa-circle-info mr-1"></i> Pre-Configured Cloud Accounts:</div>
+                    <div>• <strong>Brand Owner (Global):</strong> <code>owner</code> / <code>admin123</code></div>
+                    <div>• <strong>Metro Branch Manager:</strong> <code>manager1</code> / <code>pass123</code></div>
+                    <div>• <strong>Galleria Branch Manager:</strong> <code>manager2</code> / <code>pass123</code></div>
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Username</label>
-                    <input type="text" id="signinUsername" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    <input type="text" id="signinUsername" placeholder="Enter username" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Password</label>
-                    <input type="password" id="signinPassword" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
+                    <input type="password" id="signinPassword" placeholder="Enter password" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-cyan-500">
                 </div>
-                <button type="submit" class="w-full py-2.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold rounded-lg text-sm transition">
-                    Sign In to Cloud
+                <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-600 hover:to-indigo-700 text-white font-bold rounded-lg text-sm transition shadow-lg shadow-cyan-500/20">
+                    Sign In to Cloud Workspace
                 </button>
             </form>
 
@@ -365,8 +95,8 @@
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Account Role</label>
                     <select id="signupRole" onchange="onSignupRoleChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-cyan-300">
-                        <option value="MANAGER">Franchise Store Manager (Outlet Scope)</option>
-                        <option value="ADMIN">Main Brand Owner (Full Cloud Admin Scope)</option>
+                        <option value="MANAGER">Franchise Store Manager (Branch Isolated)</option>
+                        <option value="ADMIN">Main Brand Owner (Global Admin Scope)</option>
                     </select>
                 </div>
                 <div id="signupStoreField">
@@ -383,15 +113,296 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Password</label>
-                    <input type="password" id="signupPassword" placeholder="Minimum 6 characters" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                    <input type="password" id="signupPassword" placeholder="Create password" required class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
                 </div>
                 <button type="submit" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-sm transition">
-                    Create Franchise Account
+                    Create Cloud Account
                 </button>
             </form>
-
-            <button onclick="closeModal('authModal')" class="w-full text-center text-xs text-slate-500 hover:text-slate-300 mt-4">Close Window</button>
         </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 2. AUTHENTICATED CLOUD WORKSPACE (HIDDEN UNTIL USER SIGNS IN)         -->
+    <!-- ===================================================================== -->
+    <div id="authenticatedWorkspace" class="hidden flex-1 flex flex-col">
+        <!-- Sub-Nav & Scope Filter -->
+        <div class="bg-slate-800/40 border-b border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center justify-between py-2 gap-2">
+                <div class="flex space-x-2 overflow-x-auto">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 bg-indigo-600 text-white shadow-sm">
+                        <i class="fa-solid fa-chart-line"></i><span>Cloud Analytics</span>
+                    </button>
+                    <button onclick="switchTab('inventory')" id="tab-inventory" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-boxes-stacked"></i><span>Franchise Inventory</span>
+                    </button>
+                    <button onclick="switchTab('billing')" id="tab-billing" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-cash-register"></i><span>Cloud POS & Billing</span>
+                    </button>
+                    <button onclick="switchTab('stores')" id="tab-stores" class="tab-btn px-4 py-2 rounded-lg text-sm font-semibold flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                        <i class="fa-solid fa-shop"></i><span>Store Outlets</span>
+                    </button>
+                </div>
+                
+                <!-- Global Store Filter Dropdown (Active for Admin, locked for Branch Manager) -->
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs uppercase font-semibold text-slate-400"><i class="fa-solid fa-filter mr-1"></i> Scope:</span>
+                    <select id="activeStoreSelect" onchange="onActiveStoreChange()" class="bg-slate-950 border border-slate-700 text-cyan-300 text-xs rounded-lg px-2.5 py-1.5 focus:ring-1 focus:ring-cyan-500 focus:outline-none">
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN BODY -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+            <!-- 1. DASHBOARD & BUSINESS REPORTS -->
+            <section id="view-dashboard" class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 id="analyticsScopeTitle" class="text-lg font-bold text-white">Global Brand Analytics</h2>
+                        <p class="text-xs text-slate-400">Live synchronized metrics from cloud storage</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase font-bold text-slate-400">Cloud Revenue</span>
+                            <div class="p-2 rounded-lg bg-emerald-500/10 text-emerald-400"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        </div>
+                        <h3 id="statTotalRevenue" class="text-2xl font-bold text-emerald-400 mt-2">₹0</h3>
+                        <p class="text-xs text-slate-400 mt-1">Filtered scope revenue</p>
+                    </div>
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase font-bold text-slate-400">Total Invoices</span>
+                            <div class="p-2 rounded-lg bg-cyan-500/10 text-cyan-400"><i class="fa-solid fa-receipt"></i></div>
+                        </div>
+                        <h3 id="statTotalBills" class="text-2xl font-bold text-white mt-2">0</h3>
+                        <p class="text-xs text-slate-400 mt-1">Cloud transactions logged</p>
+                    </div>
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase font-bold text-slate-400">Active Outlets</span>
+                            <div class="p-2 rounded-lg bg-indigo-500/10 text-indigo-400"><i class="fa-solid fa-store"></i></div>
+                        </div>
+                        <h3 id="statTotalStores" class="text-2xl font-bold text-white mt-2">0</h3>
+                        <p class="text-xs text-slate-400 mt-1">Outlets in current scope</p>
+                    </div>
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase font-bold text-slate-400">Stock Volume</span>
+                            <div class="p-2 rounded-lg bg-amber-500/10 text-amber-400"><i class="fa-solid fa-cubes"></i></div>
+                        </div>
+                        <h3 id="statTotalUnits" class="text-2xl font-bold text-amber-300 mt-2">0</h3>
+                        <p class="text-xs text-slate-400 mt-1">Live inventory units</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Outlet Revenue Chart -->
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                        <h4 class="text-sm font-semibold text-slate-300 mb-4 flex items-center">
+                            <i class="fa-solid fa-chart-bar text-cyan-400 mr-2"></i> Revenue Breakdown (₹)
+                        </h4>
+                        <div class="h-64">
+                            <canvas id="storeRevenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Low Stock Alerts -->
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between">
+                        <h4 class="text-sm font-semibold text-rose-400 mb-3 flex items-center">
+                            <i class="fa-solid fa-triangle-exclamation mr-2"></i> Low Stock Threshold Alerts
+                        </h4>
+                        <div class="overflow-y-auto max-h-56 pr-1">
+                            <div id="lowStockList" class="space-y-2 text-sm">
+                                <p class="text-slate-500 italic">Scanning threshold limits...</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-3 border-t border-slate-700 text-xs text-slate-400 flex justify-between">
+                            <span>Real-time cloud alerts</span>
+                            <button onclick="switchTab('inventory')" class="text-cyan-400 hover:underline">Restock Now &rarr;</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. INVENTORY MANAGEMENT -->
+            <section id="view-inventory" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Centralized Franchise Inventory</h2>
+                        <p class="text-xs text-slate-400">Update stock levels, unit pricing, and thresholds.</p>
+                    </div>
+                    <button onclick="openModal('addStockModal')" class="bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Add / Update Stock</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
+                                <tr>
+                                    <th class="px-5 py-3">Store Outlet</th>
+                                    <th class="px-5 py-3">SKU</th>
+                                    <th class="px-5 py-3">Item Name</th>
+                                    <th class="px-5 py-3">Category</th>
+                                    <th class="px-5 py-3 text-right">Unit Price (₹)</th>
+                                    <th class="px-5 py-3 text-center">Stock</th>
+                                    <th class="px-5 py-3 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody" class="divide-y divide-slate-700/60">
+                                <tr><td colspan="7" class="px-5 py-8 text-center text-slate-500">Loading live stock data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. BILLING & POS -->
+            <section id="view-billing" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-4">
+                        <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl">
+                            <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                                <i class="fa-solid fa-cart-shopping text-cyan-400 mr-2"></i> Fast Invoicing Item Selector
+                            </h3>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Billing Outlet</label>
+                                    <select id="billStoreSelect" onchange="loadBillingStoreItems()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Available Product</label>
+                                    <select id="billItemSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500"></select>
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Quantity</label>
+                                    <div class="flex space-x-2">
+                                        <input type="number" id="billItemQty" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-cyan-500">
+                                        <button onclick="addItemToCart()" class="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-lg text-white font-semibold text-xs flex items-center">
+                                            <i class="fa-solid fa-plus mr-1"></i> Add
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cart Table -->
+                        <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl overflow-hidden shadow">
+                            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                                <span class="text-sm font-semibold text-slate-300">Active Customer Cart</span>
+                                <button onclick="clearCart()" class="text-xs text-rose-400 hover:underline">Clear</button>
+                            </div>
+                            <table class="w-full text-left text-sm text-slate-300">
+                                <thead class="bg-slate-950/60 text-xs uppercase text-slate-400 border-b border-slate-700">
+                                    <tr>
+                                        <th class="px-4 py-2.5">Item</th>
+                                        <th class="px-4 py-2.5 text-center">Qty</th>
+                                        <th class="px-4 py-2.5 text-right">Price (₹)</th>
+                                        <th class="px-4 py-2.5 text-right">Total (₹)</th>
+                                        <th class="px-4 py-2.5 text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cartTableBody" class="divide-y divide-slate-700/50">
+                                    <tr><td colspan="5" class="p-6 text-center text-slate-500 italic">Cart is empty.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Checkout Card -->
+                    <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between space-y-4">
+                        <div>
+                            <h3 class="text-base font-bold text-white mb-4 flex items-center">
+                                <i class="fa-solid fa-file-invoice-dollar text-emerald-400 mr-2"></i> Checkout & Tax Breakdown
+                            </h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Customer Name</label>
+                                    <input type="text" id="billCustName" placeholder="e.g. Rahul Sharma" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Customer Mobile</label>
+                                    <input type="text" id="billCustPhone" placeholder="e.g. 9822114455" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-slate-400 block mb-1">Payment Method</label>
+                                    <select id="billPayMode" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm text-white">
+                                        <option value="UPI">UPI / Instant QR</option>
+                                        <option value="Cash">Cash at Counter</option>
+                                        <option value="Card">Debit / Credit Card</option>
+                                        <option value="NetBanking">Net Banking</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2 text-sm">
+                                <div class="flex justify-between text-slate-400">
+                                    <span>Subtotal</span>
+                                    <span id="cartSubtotal">₹0.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-400">
+                                    <span>GST (Included 18%)</span>
+                                    <span id="cartTax">₹0.00</span>
+                                </div>
+                                <div class="pt-2 border-t border-slate-700 flex justify-between font-bold text-base text-emerald-400">
+                                    <span>Total Payable</span>
+                                    <span id="cartGrandTotal">₹0.00</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="submitBill()" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-slate-950 font-bold rounded-xl text-sm shadow-lg shadow-emerald-500/20 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-check"></i><span>Complete Sale & Deduct Stock</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Invoices Table -->
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5">
+                    <h4 class="text-sm font-semibold text-slate-300 mb-3 flex items-center">
+                        <i class="fa-solid fa-clock-rotate-left text-cyan-400 mr-2"></i> Recent Invoices Generated
+                    </h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
+                                <tr>
+                                    <th class="p-2.5">Invoice #</th>
+                                    <th class="p-2.5">Store Outlet</th>
+                                    <th class="p-2.5">Billed By</th>
+                                    <th class="p-2.5">Customer</th>
+                                    <th class="p-2.5">Payment</th>
+                                    <th class="p-2.5 text-right">Amount (₹)</th>
+                                    <th class="p-2.5 text-center">Timestamp</th>
+                                </tr>
+                            </thead>
+                            <tbody id="billsHistoryBody" class="divide-y divide-slate-800">
+                                <tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. STORE OUTLETS -->
+            <section id="view-stores" class="hidden space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-white">Franchise Network Management</h2>
+                        <p class="text-xs text-slate-400">View and manage registered physical franchises across regions.</p>
+                    </div>
+                    <button id="btnRegisterStore" onclick="openModal('addStoreModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i><span>Register New Franchise Branch</span>
+                    </button>
+                </div>
+
+                <div id="storesGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+            </section>
+        </main>
     </div>
 
     <!-- MODAL: ADD / UPDATE STOCK -->
@@ -485,11 +496,6 @@
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-        function openAuthModal(mode) {
-            openModal('authModal');
-            toggleAuthForm(mode);
-        }
-
         function toggleAuthForm(mode) {
             const isSignin = mode === 'signin';
             document.getElementById('formSignin').classList.toggle('hidden', !isSignin);
@@ -509,29 +515,54 @@
             document.getElementById('signupStoreField').style.display = (role === 'ADMIN') ? 'none' : 'block';
         }
 
-        // AUTH CHECK
+        // Load public stores solely for the registration dropdown before login
+        async function loadPublicStoresForSignup() {
+            try {
+                const res = await fetch('/api/stores/public');
+                const list = await res.json();
+                const signupSelect = document.getElementById('signupStoreId');
+                signupSelect.innerHTML = '';
+                list.forEach(st => {
+                    signupSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // AUTH CHECK: Gates the entire workspace until logged in
         async function checkAuthSession() {
             const res = await fetch('/api/auth/session');
             const data = await res.json();
             if (data.logged_in) {
                 currentUser = data.user;
+                document.getElementById('unauthenticatedScreen').classList.add('hidden');
+                document.getElementById('authenticatedWorkspace').classList.remove('hidden');
+                document.getElementById('guestHeaderBadge').classList.add('hidden');
                 document.getElementById('userProfileBadge').classList.remove('hidden');
-                document.getElementById('guestAuthButtons').classList.add('hidden');
+
                 document.getElementById('userFullName').innerText = currentUser.full_name;
                 document.getElementById('userRoleTag').innerText = currentUser.role === 'ADMIN' 
                     ? 'OWNER | All Branches Access' 
                     : `MANAGER | ${currentUser.store_name}`;
                 
-                // Restrict UI permissions
                 if (currentUser.role === 'MANAGER') {
                     document.getElementById('btnRegisterStore').style.display = 'none';
                 } else {
                     document.getElementById('btnRegisterStore').style.display = 'flex';
                 }
+
+                await loadStores();
+                await loadReports();
+                await loadInventory();
+                await loadBillsHistory();
             } else {
                 currentUser = null;
+                document.getElementById('unauthenticatedScreen').classList.remove('hidden');
+                document.getElementById('authenticatedWorkspace').classList.add('hidden');
+                document.getElementById('guestHeaderBadge').classList.remove('hidden');
                 document.getElementById('userProfileBadge').classList.add('hidden');
-                document.getElementById('guestAuthButtons').classList.remove('hidden');
+                await loadPublicStoresForSignup();
             }
         }
 
@@ -547,11 +578,9 @@
             });
             const data = await res.json();
             if (data.success) {
-                closeModal('authModal');
+                document.getElementById('signinUsername').value = '';
+                document.getElementById('signinPassword').value = '';
                 await checkAuthSession();
-                await loadStores();
-                loadReports();
-                loadInventory();
             } else {
                 alert(data.message);
             }
@@ -601,40 +630,28 @@
         }
 
         async function loadStores() {
+            if (!currentUser) return;
             try {
                 const res = await fetch('/api/stores');
                 storesData = await res.json();
                 
                 const activeSelect = document.getElementById('activeStoreSelect');
+                const prevSelected = activeSelect.value;
                 const billStoreSelect = document.getElementById('billStoreSelect');
                 const modalStoreSelect = document.getElementById('modalStoreId');
-                const signupStoreSelect = document.getElementById('signupStoreId');
                 const storesGrid = document.getElementById('storesGrid');
 
-                activeSelect.innerHTML = (currentUser && currentUser.role === 'MANAGER') 
+                activeSelect.innerHTML = (currentUser.role === 'MANAGER') 
                     ? '' 
                     : '<option value="all">Global (All Franchise Branches)</option>';
                 billStoreSelect.innerHTML = '';
                 modalStoreSelect.innerHTML = '';
-                signupStoreSelect.innerHTML = '';
                 storesGrid.innerHTML = '';
 
                 storesData.forEach(st => {
-                    // Populate signup store choices
-                    signupStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-
-                    // If logged in as manager, restrict active choices to their assigned outlet
-                    if (currentUser && currentUser.role === 'MANAGER') {
-                        if (st.id === currentUser.store_id) {
-                            activeSelect.innerHTML += `<option value="${st.id}" selected>${st.name} (${st.code})</option>`;
-                            billStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-                            modalStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-                        }
-                    } else {
-                        activeSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-                        billStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-                        modalStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
-                    }
+                    activeSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                    billStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
+                    modalStoreSelect.innerHTML += `<option value="${st.id}">${st.name} (${st.code})</option>`;
 
                     storesGrid.innerHTML += `
                         <div class="bg-slate-800/60 border border-slate-700/60 p-5 rounded-2xl flex flex-col justify-between">
@@ -660,19 +677,33 @@
                     `;
                 });
 
+                if (prevSelected && [...activeSelect.options].some(o => o.value === prevSelected)) {
+                    activeSelect.value = prevSelected;
+                }
+
                 loadBillingStoreItems();
             } catch (err) {
                 console.error(err);
             }
         }
 
+        // Triggered whenever Brand Owner selects a specific franchise from Scope filter
         function onActiveStoreChange() {
+            const activeStore = document.getElementById('activeStoreSelect').value;
+            // Sync billing and modal dropdowns if a specific outlet is selected
+            if (activeStore && activeStore !== 'all') {
+                document.getElementById('billStoreSelect').value = activeStore;
+                document.getElementById('modalStoreId').value = activeStore;
+                loadBillingStoreItems();
+            }
             loadReports();
             loadInventory();
+            loadBillsHistory();
         }
 
         async function loadInventory() {
-            const activeStore = document.getElementById('activeStoreSelect').value;
+            if (!currentUser) return;
+            const activeStore = document.getElementById('activeStoreSelect').value || 'all';
             const res = await fetch(`/api/inventory?store_id=${activeStore}`);
             inventoryData = await res.json();
             
@@ -705,6 +736,7 @@
         }
 
         async function loadBillingStoreItems() {
+            if (!currentUser) return;
             const storeId = document.getElementById('billStoreSelect').value;
             if (!storeId) return;
             const res = await fetch(`/api/inventory?store_id=${storeId}`);
@@ -782,7 +814,7 @@
         }
 
         async function submitBill() {
-            if (!currentUser) return openAuthModal('signin');
+            if (!currentUser) return;
             if (cartItems.length === 0) return alert('Please add at least one item to cart!');
 
             const storeId = document.getElementById('billStoreSelect').value;
@@ -812,18 +844,21 @@ Amount: ₹${data.total_amount}`);
                 loadBillingStoreItems();
                 loadBillsHistory();
                 loadReports();
+                loadStores();
             } else {
                 alert('Error: ' + data.message);
             }
         }
 
         async function loadBillsHistory() {
-            const res = await fetch('/api/bills');
+            if (!currentUser) return;
+            const activeStore = document.getElementById('activeStoreSelect').value || 'all';
+            const res = await fetch(`/api/bills?store_id=${activeStore}`);
             const bills = await res.json();
             const tbody = document.getElementById('billsHistoryBody');
             tbody.innerHTML = '';
             if (!bills.length) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-500">No invoices yet for this scope.</td></tr>';
                 return;
             }
             bills.forEach(b => {
@@ -843,7 +878,7 @@ Amount: ₹${data.total_amount}`);
 
         async function handleStockSubmit(e) {
             e.preventDefault();
-            if (!currentUser) return openAuthModal('signin');
+            if (!currentUser) return;
             const payload = {
                 store_id: document.getElementById('modalStoreId').value,
                 item_code: document.getElementById('modalItemCode').value,
@@ -864,6 +899,7 @@ Amount: ₹${data.total_amount}`);
                 loadInventory();
                 loadReports();
                 loadBillingStoreItems();
+                loadStores();
             } else {
                 alert(data.message);
             }
@@ -896,7 +932,16 @@ Amount: ₹${data.total_amount}`);
         }
 
         async function loadReports() {
-            const res = await fetch('/api/reports');
+            if (!currentUser) return;
+            const activeSelect = document.getElementById('activeStoreSelect');
+            const activeStore = activeSelect.value || 'all';
+            const selectedOptionText = activeSelect.options[activeSelect.selectedIndex]?.text || 'Global Brand Analytics';
+            
+            document.getElementById('analyticsScopeTitle').innerText = activeStore === 'all' 
+                ? 'Global Brand Analytics (All Franchise Branches)' 
+                : `Franchise Analytics: ${selectedOptionText}`;
+
+            const res = await fetch(`/api/reports?store_id=${activeStore}`);
             const data = await res.json();
 
             document.getElementById('statTotalRevenue').innerText = `₹${Number(data.summary.total_revenue).toLocaleString('en-IN')}`;
@@ -907,7 +952,7 @@ Amount: ₹${data.total_amount}`);
             const alertContainer = document.getElementById('lowStockList');
             alertContainer.innerHTML = '';
             if (!data.low_stock_alerts.length) {
-                alertContainer.innerHTML = '<p class="text-emerald-400 text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Stock levels optimal!</p>';
+                alertContainer.innerHTML = '<p class="text-emerald-400 text-xs"><i class="fa-solid fa-circle-check mr-1"></i> Stock levels optimal for selected scope!</p>';
             } else {
                 data.low_stock_alerts.forEach(item => {
                     alertContainer.innerHTML += `
@@ -958,8 +1003,6 @@ Amount: ₹${data.total_amount}`);
 
         window.addEventListener('DOMContentLoaded', async () => {
             await checkAuthSession();
-            await loadStores();
-            loadReports();
         });
     </script>
 </body>
